@@ -1,4 +1,5 @@
 
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
@@ -10,8 +11,6 @@ module.exports = mongoose.model("User", userSchema);
 // // routes/user.js
 // const express = require('express');
 // const router = express.Router();
-
-// const userController = require('../controllers/userController');
 
 // // GET /users  (note: since server uses app.use('/users', userRoutes), here path is '/')
 // router.get('/', userController.getUsers);
@@ -33,5 +32,4 @@ router.post("/", userController.createUser);
 
 
 module.exports = router;
-
 
