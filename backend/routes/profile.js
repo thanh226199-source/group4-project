@@ -1,22 +1,49 @@
-// backend/routes/profile.js
+// routes/profile.js
 const express = require("express");
 const router = express.Router();
-const profileController = require("../controllers/profileController");
-const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { verifyToken } = require("../middlewares/auth");
 
-// middleware verifyToken (dùng same secret "secret-key")
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "Thiếu token" });
-  const token = authHeader.split(" ")[1];
-  jwt.verify(token, "secret-key", (err, decoded) => {
-    if (err) return res.status(401).json({ message: "Token không hợp lệ" });
-    req.user = decoded; // decoded should contain { id, email, ... }
-    next();
-  });
-}
+/* ======================================================
+   📌 [GET] /api/profile - Lấy thông tin user hiện tại
+====================================================== */
+router.get("/", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    res.json(user);
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy hồ sơ:", err);
+    res.status(500).json({ message: "Lỗi server khi lấy hồ sơ" });
+  }
+});
 
-router.get("/", verifyToken, profileController.getProfile);
-router.put("/", verifyToken, profileController.updateProfile);
+/* ======================================================
+   📌 [PUT] /api/profile - Cập nhật thông tin user hiện tại
+====================================================== */
+router.put("/", verifyToken, async (req, res) => {
+  try {
+    const updateData = { ...req.body };
+    if (updateData.password) delete updateData.password; // không cho đổi pass ở đây
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      updateData,
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    res.json({
+      message: "Cập nhật hồ sơ thành công",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật hồ sơ:", err);
+    res.status(500).json({ message: "Lỗi server khi cập nhật hồ sơ" });
+  }
+});
 
 module.exports = router;

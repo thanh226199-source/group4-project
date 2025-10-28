@@ -1,60 +1,9 @@
-
-
-
-const mongoose = require("mongoose");
-
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true }
-});
-
-module.exports = mongoose.model("User", userSchema);
-// // routes/user.js
-// const express = require('express');
-// const router = express.Router();
-
-// // GET /users  (note: since server uses app.use('/users', userRoutes), here path is '/')
-// router.get('/', userController.getUsers);
-
-// // POST /users
-// router.post('/', userController.createUser);
-
-// module.exports = router;
 // routes/user.js
 const express = require("express");
 const router = express.Router();
-const userController = require("../controllers/userController");
-
-// GET /users
-router.get("/", userController.getUsers);
-
-// POST /users
-router.post("/", userController.createUser);
-
-
-module.exports = router;
-
-const express = require("express");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
-const { verifyToken, requireAdmin } = require("../middlewares/auth"); // ✅ Dùng middleware chung
-
-console.log({ verifyToken, requireAdmin });
-
-/* ======================================================
-   📌 [GET] /api/profile - Xem thông tin user hiện tại
-====================================================== */
-router.get("/profile", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user)
-      return res.status(404).json({ message: "Không tìm thấy người dùng" });
-    res.json(user);
-  } catch (err) {
-    console.error("❌ Lỗi khi lấy hồ sơ:", err);
-    res.status(500).json({ message: "Lỗi server khi lấy hồ sơ" });
-  }
-});
+const { verifyToken, requireAdmin } = require("../middlewares/auth");
 
 /* ======================================================
    📌 [GET] /api/users - Admin xem danh sách user
@@ -154,4 +103,3 @@ router.delete("/:id", verifyToken, async (req, res) => {
 });
 
 module.exports = router;
-
