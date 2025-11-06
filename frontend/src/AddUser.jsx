@@ -9,7 +9,7 @@ function AddUser({ fetchUsers, showToast }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation nâng cao
+    // ✅ Kiểm tra hợp lệ
     if (!name.trim()) {
       showToast("⚠️ Tên không được để trống", false);
       return;
@@ -21,14 +21,30 @@ function AddUser({ fetchUsers, showToast }) {
 
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/users", { name, email });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        showToast("⚠️ Bạn cần đăng nhập trước khi thêm người dùng!", false);
+        return;
+      }
+
+      // ✅ Gửi kèm password mặc định để tránh lỗi schema
+      await axios.post(
+        "http://localhost:5000/api/users",
+        { name, email, password: "123456" },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       setName("");
       setEmail("");
       fetchUsers();
       showToast("✅ Thêm người dùng thành công!");
     } catch (err) {
-      showToast("❌ Lỗi khi thêm người dùng", false);
-      console.error(err);
+      console.error("❌ Lỗi khi thêm người dùng:", err);
+      showToast("❌ Không thể thêm người dùng!", false);
     } finally {
       setLoading(false);
     }

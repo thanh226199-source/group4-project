@@ -5,7 +5,10 @@ function UserList({ users, fetchUsers, showToast }) {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này không?")) return;
     try {
-      await axios.delete(`http://localhost:5000/users/${id}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }, // ✅ Gửi token
+      });
       fetchUsers();
       showToast("🗑️ Đã xóa người dùng");
     } catch (err) {
@@ -20,10 +23,14 @@ function UserList({ users, fetchUsers, showToast }) {
     if (!newName || !newEmail) return;
 
     try {
-      await axios.put(`http://localhost:5000/users/${id}`, {
-        name: newName,
-        email: newEmail,
-      });
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/users/${id}`,
+        { name: newName, email: newEmail },
+        {
+          headers: { Authorization: `Bearer ${token}` }, // ✅ Gửi token
+        }
+      );
       showToast("✏️ Cập nhật thành công!");
       fetchUsers();
     } catch (err) {

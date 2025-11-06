@@ -142,3 +142,73 @@ h1 {
 .toast.err {
   background-color: #ea4335;
 }
+
+/* ==========================================================
+   🔒 Giao diện trang chủ (khi chưa đăng nhập)
+   ========================================================== */
+.home-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e8f0fe, #f9fafc) !important;
+}
+
+.home-card {
+  background: white;
+  padding: 40px 50px;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1)!important;
+  text-align: center;
+  max-width: 480px;
+  width: 90%;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.home-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+  color: #1a73e8;
+}
+
+.home-title {
+  font-size: 1.3rem;
+  color: #d93025;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.home-subtitle {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.home-button {
+  display: inline-block;
+  background: linear-gradient(90deg, #1a73e8, #4285f4);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.home-button:hover {
+  background: linear-gradient(90deg, #4285f4, #1a73e8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
