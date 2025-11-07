@@ -1,20 +1,34 @@
-// =================== IMPORT ===================
 const User = require("../models/User");
+const RefreshToken = require("../models/RefreshToken"); // ✅ thêm mới
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
-const cloudinary = require("cloudinary").v2;
 
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
+// 🔐 Lấy secret từ file .env
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret";
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
 
-// ✅ Cấu hình Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "your_cloud_name",
-  api_key: process.env.CLOUDINARY_API_KEY || "your_api_key",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "your_api_secret",
-});
+// ============================
+// 🔹 Hàm tạo Access / Refresh Token
+// ============================
+function generateAccessToken(user) {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: "15m" } // thời gian sống ngắn hơn
+  );
+}
 
-// =================== ĐĂNG KÝ ===================
+function generateRefreshToken(user) {
+  return jwt.sign(
+    { id: user._id },
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+// ============================
+// 🧩 Đăng ký
+// ============================
 exports.signup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -32,6 +46,7 @@ exports.signup = async (req, res) => {
     });
 
     await user.save();
+
     res.status(201).json({ message: "Đăng ký thành công", user });
   } catch (err) {
     console.error("❌ Lỗi đăng ký:", err);
@@ -39,7 +54,9 @@ exports.signup = async (req, res) => {
   }
 };
 
-// =================== ĐĂNG NHẬP ===================
+// ============================
+// 🧩 Đăng nhập
+// ============================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -50,11 +67,19 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Sai mật khẩu" });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
+    // Tạo token
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Lưu refresh token vào DB
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 ngày
+    await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt });
 
     res.json({
       message: "Đăng nhập thành công",
-      token,
+      accessToken,
+      refreshToken,
       user: { ...user.toObject(), password: undefined },
     });
   } catch (err) {
@@ -63,102 +88,53 @@ exports.login = async (req, res) => {
   }
 };
 
-// =================== ĐĂNG XUẤT ===================
-exports.logout = (req, res) => {
+// ============================
+// ♻️ Refresh Token
+// ============================
+exports.refresh = async (req, res) => {
   try {
-    res.json({ message: "Đăng xuất thành công" });
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi server khi đăng xuất" });
-  }
-};
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(401).json({ message: "Thiếu refresh token" });
 
-// =================== QUÊN MẬT KHẨU ===================
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
+    // Kiểm tra token có trong DB không
+    const stored = await RefreshToken.findOne({ token: refreshToken });
+    if (!stored) return res.status(403).json({ message: "Refresh token không hợp lệ" });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Email không tồn tại" });
+    // Xác thực refresh token
+    jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, async (err, decoded) => {
+      if (err) return res.status(403).json({ message: "Refresh token hết hạn hoặc không hợp lệ" });
 
-    // 🔹 Tạo JWT token reset có hiệu lực 15 phút
-    const resetToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "15m" });
-    const resetLink = `http://localhost:3000/reset-password/${resetToken}`;
+      const user = await User.findById(decoded.id);
+      if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
 
-    // 🔹 Cấu hình Gmail (App Password)
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+      // Tạo access token mới
+      const newAccessToken = generateAccessToken(user);
+
+      res.json({
+        accessToken: newAccessToken,
+        message: "Cấp lại access token thành công",
+      });
     });
-
-    // 🔹 Gửi email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "Đặt lại mật khẩu",
-      html: `
-        <h3>Xin chào ${user.name || "bạn"},</h3>
-        <p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết bên dưới để đặt lại:</p>
-        <a href="${resetLink}" target="_blank">${resetLink}</a>
-        <p>Liên kết này chỉ có hiệu lực trong 15 phút.</p>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.json({ message: "✅ Đã gửi email đặt lại mật khẩu!" });
   } catch (err) {
-    console.error("❌ Lỗi forgotPassword:", err);
-    res.status(500).json({ message: "Lỗi server khi gửi email đặt lại mật khẩu" });
+    console.error("❌ Lỗi refresh token:", err);
+    res.status(500).json({ message: "Lỗi server khi refresh token" });
   }
 };
 
-// =================== ĐẶT LẠI MẬT KHẨU ===================
-exports.resetPassword = async (req, res) => {
+// ============================
+// 🚪 Đăng xuất
+// ============================
+exports.logout = async (req, res) => {
   try {
-    const { token, password, newPassword } = req.body;
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ message: "Thiếu refresh token" });
 
-    // ✅ Cho phép frontend gửi password HOẶC newPassword
-    const finalPassword = password || newPassword;
+    // Xóa refresh token trong DB để revoke
+    await RefreshToken.deleteOne({ token: refreshToken });
 
-    if (!token || !finalPassword) {
-      console.warn("⚠️ Thiếu dữ liệu gửi từ frontend:", req.body);
-      return res.status(400).json({ message: "Thiếu token hoặc mật khẩu mới" });
-    }
-
-    // 🔹 Giải mã token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
-
-    // 🔹 Cập nhật mật khẩu mới
-    user.password = await bcrypt.hash(finalPassword, 10);
-    await user.save();
-
-    res.json({ message: "✅ Đặt lại mật khẩu thành công!" });
+    res.json({ message: "Đăng xuất thành công, token đã bị thu hồi" });
   } catch (err) {
-    console.error("❌ Lỗi resetPassword:", err);
-    if (err.name === "TokenExpiredError") {
-      return res.status(400).json({ message: "Token đã hết hạn, vui lòng yêu cầu lại" });
-    }
-    res.status(500).json({ message: "Lỗi server khi đặt lại mật khẩu" });
-  }
-};
-
-// =================== UPLOAD AVATAR ===================
-exports.uploadAvatar = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: "Chưa chọn ảnh" });
-
-    const result = await cloudinary.uploader.upload(file.path, { folder: "avatars" });
-    await User.findByIdAndUpdate(userId, { avatar: result.secure_url });
-
-    res.json({ message: "Cập nhật avatar thành công!", avatarUrl: result.secure_url });
-  } catch (err) {
-    console.error("❌ Lỗi upload-avatar:", err);
-    res.status(500).json({ message: "Lỗi server khi tải ảnh lên" });
+    console.error("❌ Lỗi đăng xuất:", err);
+    res.status(500).json({ message: "Lỗi server khi đăng xuất" });
   }
 };
