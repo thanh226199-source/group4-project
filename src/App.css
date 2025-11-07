@@ -1,0 +1,214 @@
+/* App.css - Giao diện sáng, hiện đại, nhẹ nhàng */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9fafc;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  background: white;
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+h1 {
+  text-align: center;
+  color: #1a73e8;
+  font-size: 28px;
+  margin-bottom: 30px;
+}
+
+.label {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #444;
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 240px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 4px rgba(26, 115, 232, 0.2);
+}
+
+.btn {
+  padding: 10px 18px;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.btn:hover {
+  background-color: #155fc1;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.table th {
+  background-color: #f1f3f4;
+  text-align: left;
+  padding: 10px;
+}
+
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.btn-ghost {
+  background-color: #e8f0fe;
+  color: #1967d2;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background-color: #d2e3fc;
+}
+
+.btn-danger {
+  background-color: #f28b82;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #d93025;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.badge {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.toast.ok {
+  background-color: #34a853;
+}
+
+.toast.err {
+  background-color: #ea4335;
+}
+
+/* ==========================================================
+   🔒 Giao diện trang chủ (khi chưa đăng nhập)
+   ========================================================== */
+.home-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e8f0fe, #f9fafc) !important;
+}
+
+.home-card {
+  background: white;
+  padding: 40px 50px;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1)!important;
+  text-align: center;
+  max-width: 480px;
+  width: 90%;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.home-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+  color: #1a73e8;
+}
+
+.home-title {
+  font-size: 1.3rem;
+  color: #d93025;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.home-subtitle {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.home-button {
+  display: inline-block;
+  background: linear-gradient(90deg, #1a73e8, #4285f4);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.home-button:hover {
+  background: linear-gradient(90deg, #4285f4, #1a73e8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
