@@ -1,13 +1,51 @@
-// routes/user.js
 const express = require("express");
+const bcrypt = require("bcrypt");
 const router = express.Router();
 const User = require("../models/User");
-const bcrypt = require("bcrypt");
 const { verifyToken, requireAdmin } = require("../middlewares/auth");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
 
-/* ======================================================
-   📌 [GET] /api/users - Admin xem danh sách user
-====================================================== */
+// ======================================
+// ⚙️ Cấu hình Cloudinary
+// ======================================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// ⚙️ Cấu hình Multer Storage để upload ảnh lên Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "user_avatars", // tên thư mục lưu trên Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
+const upload = multer({ storage });
+
+// ======================================================
+// 📌 [GET] /api/users/profile - Xem thông tin user hiện tại
+// ======================================================
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy hồ sơ:", err);
+    res.status(500).json({ message: "Lỗi server khi lấy hồ sơ" });
+  }
+});
+
+// ======================================================
+// 📌 [GET] /api/users - Admin xem danh sách user
+// ======================================================
 router.get("/", verifyToken, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -18,9 +56,9 @@ router.get("/", verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-/* ======================================================
-   📌 [POST] /api/users - Admin thêm user mới
-====================================================== */
+// ======================================================
+// 📌 [POST] /api/users - Admin thêm user mới
+// ======================================================
 router.post("/", verifyToken, requireAdmin, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -50,13 +88,15 @@ router.post("/", verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-/* ======================================================
-   📌 [PUT] /api/users/:id - Admin hoặc chính user cập nhật
-====================================================== */
+// ======================================================
+// 📌 [PUT] /api/users/:id - Admin hoặc chính user cập nhật
+// ======================================================
 router.put("/:id", verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== "admin" && req.user.id !== req.params.id)
+    // Chỉ admin hoặc chính chủ tài khoản mới được sửa
+    if (req.user.role !== "admin" && req.user.id !== req.params.id) {
       return res.status(403).json({ message: "Không có quyền cập nhật!" });
+    }
 
     const updateData = { ...req.body };
     if (req.user.role !== "admin") delete updateData.role;
@@ -69,8 +109,9 @@ router.put("/:id", verifyToken, async (req, res) => {
       new: true,
     }).select("-password");
 
-    if (!updatedUser)
+    if (!updatedUser) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
 
     res.json({
       message: "Cập nhật thành công",
@@ -82,9 +123,45 @@ router.put("/:id", verifyToken, async (req, res) => {
   }
 });
 
-/* ======================================================
-   📌 [DELETE] /api/users/:id - Admin hoặc chính user xóa
-====================================================== */
+// ======================================================
+// 📸 [PUT] /api/users/:id/avatar - Cập nhật ảnh đại diện
+// ======================================================
+router.put("/:id/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
+  try {
+    // Kiểm tra quyền
+    if (req.user.role !== "admin" && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: "Không có quyền đổi ảnh!" });
+    }
+
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "Không có ảnh nào được tải lên" });
+    }
+
+    const imageUrl = req.file.path; // link ảnh từ Cloudinary
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { avatar: imageUrl },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+
+    res.json({
+      message: "Cập nhật ảnh thành công",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật ảnh:", err);
+    res.status(500).json({ message: "Lỗi server khi cập nhật ảnh" });
+  }
+});
+
+// ======================================================
+// 📌 [DELETE] /api/users/:id - Admin hoặc chính user xóa
+// ======================================================
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     if (req.user.role !== "admin" && req.user.id !== req.params.id) {
@@ -92,8 +169,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
     }
 
     const deletedUser = await User.findByIdAndDelete(req.params.id);
-    if (!deletedUser)
+    if (!deletedUser) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
 
     res.json({ message: "Đã xóa người dùng thành công" });
   } catch (err) {
